@@ -209,5 +209,6 @@ __marimo__/
 # Idea
 .idea
 
-# Secrets
+# Secrets and personal config
 entrypoint.sh
+data
