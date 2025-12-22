@@ -1,0 +1,31 @@
+import time
+from typing import Tuple, List
+
+from config import Config
+
+
+def bounds_from_month_number(month_number: int) -> List[Tuple[float, float]]:
+    period = month_number * Config.month_unix_period
+    return bounds_from_period(period)
+
+
+def bounds_from_days_number(days_number: int) -> List[Tuple[float, float]]:
+    period = days_number * Config.day_unix_period
+    return bounds_from_month_number(period)
+
+
+def bounds_from_period(period: float) -> List[Tuple[float, float]]:
+    current_time = time.time()
+    result = []
+
+    while period > 0:
+        if period >= Config.request_period:
+            period -= Config.request_period
+            from_time = current_time - Config.request_period
+            result.append((from_time, current_time))
+            current_time = from_time
+        else:
+            from_time = current_time - period
+            result.append((from_time, current_time))
+
+    return result

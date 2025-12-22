@@ -5,8 +5,12 @@ class Config:
     logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
 
     api_token = os.environ.get("API_TOKEN")
-    request_period = float(os.environ.get("MONO_REQUEST_PERIOD"))
     mono_account_id = os.environ.get("MONO_ACCOUNT_ID") or 0
+
+    month_unix_period = 2629743
+    day_unix_period = 86400
+    request_period = float(os.environ.get("MONO_REQUEST_PERIOD") or month_unix_period)
+    request_days_number = os.environ.get("MONO_REQUEST_PERIOD_DAYS")
 
     default_category = os.environ.get("DEFAULT_CATEGORY")
     default_category_id = os.environ.get("DEFAULT_CATEGORY_ID")

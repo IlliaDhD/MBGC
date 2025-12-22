@@ -14,7 +14,7 @@ def map_unix_to_iso(data: DataFrame) -> DataFrame:
 
 
 def map_coins(data: DataFrame) -> DataFrame:
-    data.loc[:, 'time'] = data.loc[:, 'operationAmount'].apply(lambda x: float(x) / 100)
+    data.loc[:, 'operationAmount'] = data.loc[:, 'operationAmount'].apply(lambda x: float(x) / 100)
     logger.info(f"Mapped operationAmount for {len(data)}:\n{data}")
     return data
 
