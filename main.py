@@ -1,18 +1,20 @@
-import time
+import json, time
 
 import pandas as pd
 
-from app.api.common import bounds_from_period, bounds_from_days_number
-from app.api.monoapi import get_transactions
-from app.data_processing.dataprocessing import *
+from app.api.time_bounds import bounds_from_period, bounds_from_days_number
+from app.api.mono_api import get_transactions
+from app.data_processing.data_processing import *
 from app.data_processing.saving import save_to_csv, add_new_institutions
 from config import Config
+
 
 def form_filename(time_bounds: List[Tuple[float, float]]) -> str:
     start = datetime.fromtimestamp(time_bounds[-1][0]).date()
     end = datetime.fromtimestamp(time_bounds[0][1]).date()
 
     return f"{start}-{end}.csv"
+
 
 if __name__ == "__main__":
     logger = Config.get_logger("Main")
@@ -25,17 +27,23 @@ if __name__ == "__main__":
 
     for from_time, to_time in time_bounds:
         # Obtains row transactions
-        new_transactions = get_transactions(from_time=from_time, to_time=to_time).loc[:, ['time', 'operationAmount', 'description']]
+        new_transactions = get_transactions(from_time=from_time, to_time=to_time).loc[:,
+                           ['time', 'operationAmount', 'description']]
         transactions = pd.concat([transactions, new_transactions], ignore_index=True)
-        time.sleep(5) # due to API limitations
+        time.sleep(5)  # due to API limitations
     # Saves only required columns
     logger.info("MonoApi: Obtained transactions: {}".format(transactions))
 
     # Maps data into required format
+    with open(Config.categories_json_path, "r", encoding="utf-8") as categories_file:
+        categories: dict[str, str] = json.load(categories_file)
+    with open(Config.category_mapper_json_path, "r", encoding="utf-8") as mappers_file:
+        mappers: dict[str, str] = json.load(mappers_file)
+
     processed, new_institutions = map_description_to_category(
-        map_coins(
-            map_unix_to_iso(transactions)
-        )
+        map_coins(map_unix_to_iso(transactions)),
+        categories,
+        mappers,
     )
 
     # Saves data

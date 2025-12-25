@@ -1,16 +1,17 @@
-import json
 from datetime import datetime
 from typing import List, Tuple
 from pandas import DataFrame
 
 from config import Config
 
+
 logger = Config.get_logger("DataProcessing")
+
 
 def map_unix_to_iso(data: DataFrame) -> DataFrame:
     data.loc[:, "time"] = data.loc[:, "time"].apply(func=lambda x: datetime.fromtimestamp(float(x)))
     logger.info(f"With mapped timestamps:\n{data}")
-    return  data
+    return data
 
 
 def map_coins(data: DataFrame) -> DataFrame:
@@ -19,10 +20,7 @@ def map_coins(data: DataFrame) -> DataFrame:
     return data
 
 
-def map_description_to_category(data: DataFrame) -> Tuple[DataFrame, List[str]]:
-    categories: dict[str, str] = json.load(open(Config.categories_json_path, "r", encoding="utf-8"))
-    mappers = json.load(open(Config.category_mapper_json_path, "r", encoding="utf-8"))
-
+def map_description_to_category(data: DataFrame, categories: dict[str, str], mappers: dict[str, str]) -> Tuple[DataFrame, List[str]]:
     new_institutions: List[str] = []
     for index, series in data.iterrows():
         description: str = series.get("description")
@@ -30,12 +28,9 @@ def map_description_to_category(data: DataFrame) -> Tuple[DataFrame, List[str]]:
 
         if category_id is None:
             new_institutions.append(description)
-            series["operationCategory"] = Config.default_category
+            data.loc[index, "operationCategory"] = Config.default_category
         else:
-            series["operationCategory"] = categories[category_id]
+            data.loc[index, "operationCategory"] = categories[category_id]
 
     logger.info(f"Found new institutions: {new_institutions}")
     return data, new_institutions
-
-
-

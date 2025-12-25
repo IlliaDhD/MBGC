@@ -12,7 +12,7 @@ class Config:
     request_period = float(os.environ.get("MONO_REQUEST_PERIOD") or month_unix_period)
     request_days_number = os.environ.get("MONO_REQUEST_PERIOD_DAYS")
 
-    default_category = os.environ.get("DEFAULT_CATEGORY")
+    default_category = os.environ.get("DEFAULT_CATEGORY") or "default"
     default_category_id = os.environ.get("DEFAULT_CATEGORY_ID")
 
     categories_json_path = os.environ.get("CATEGORIES_JSON_PATH")
