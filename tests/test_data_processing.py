@@ -14,9 +14,8 @@ class DataProcessingTests(unittest.TestCase):
         test_data, mapped_data, new_institutions = TestTransactions.generate_test_data(mappings, categories)
 
         actual_mapped_data, actual_new_institutions = map_description_to_category(test_data, categories, mappings)
-        operation_category = [record['operationCategory'] for record in mapped_data]
 
         logging.info(f"Simulated data category mapping for {len(actual_mapped_data)} transactions")
 
-        self.assertEqual(list(actual_mapped_data.get('operationCategory')), operation_category)
+        self.assertEqual(actual_mapped_data, mapped_data)
         self.assertEqual(actual_new_institutions, new_institutions)

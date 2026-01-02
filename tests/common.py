@@ -1,6 +1,5 @@
 import random
 from typing import Dict, List, Tuple
-from pandas import DataFrame
 
 from config import Config
 
@@ -39,7 +38,7 @@ class TestTransactions:
     def generate_test_data(
             cls, mappings: Dict[str, str],
             categories: Dict[str, str]
-    ) -> Tuple[DataFrame, List[Dict[str, str]], List[str]]:
+    ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]], List[str]]:
         institutions: List[str] = [key for key in mappings.keys()]
         new_institutions: List[str] = []
         data_rows: List[Dict[str, str]] = []
@@ -57,7 +56,7 @@ class TestTransactions:
             result_rows.append({'description': new_institution, 'operationCategory': "default"})
             new_institutions.append(new_institution)
 
-        return DataFrame(data_rows), result_rows, new_institutions
+        return data_rows, result_rows, new_institutions
 
 
 class TestPeriods:
@@ -73,5 +72,14 @@ class TestPeriods:
             from_time = start_time - Config.month_unix_period
             expected_bounds.append((from_time, start_time))
             start_time = from_time
+
+        return period, expected_bounds
+
+
+    @staticmethod
+    def generate_period_with_days_number(start_time: float, days_number: int) -> Tuple[int, List[Tuple[float, float]]]:
+        period = days_number * Config.day_unix_period
+        from_time = start_time - period
+        expected_bounds: List[Tuple[float, float]] = [(from_time, start_time)]
 
         return period, expected_bounds

@@ -1,6 +1,5 @@
 from datetime import datetime
-from typing import List, Tuple
-from pandas import DataFrame
+from typing import List, Tuple, Dict, Any
 
 from config import Config
 
@@ -8,29 +7,38 @@ from config import Config
 logger = Config.get_logger("DataProcessing")
 
 
-def map_unix_to_iso(data: DataFrame) -> DataFrame:
-    data.loc[:, "time"] = data.loc[:, "time"].apply(func=lambda x: datetime.fromtimestamp(float(x)))
-    logger.info(f"With mapped timestamps:\n{data}")
+def map_unix_to_iso(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    for transaction in data:
+        transaction['time'] = datetime.fromtimestamp(float(transaction['time']))
+
+    logger.info(f"Mapped {len(data)} transactions timestamps to ISO format")
+
     return data
 
 
-def map_coins(data: DataFrame) -> DataFrame:
-    data.loc[:, 'operationAmount'] = data.loc[:, 'operationAmount'].apply(lambda x: float(x) / 100)
-    logger.info(f"Mapped operationAmount for {len(data)}:\n{data}")
+def map_coins(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    for transaction in data:
+        transaction['operationAmount'] = float(transaction['operationAmount']) / 100
+
+    logger.info(f"Mapped operationAmount for {len(data)} transactions")
+
     return data
 
 
-def map_description_to_category(data: DataFrame, categories: dict[str, str], mappers: dict[str, str]) -> Tuple[DataFrame, List[str]]:
+def map_description_to_category(
+    data: List[Dict[str, Any]], categories: dict[str, str], mappers: dict[str, str]
+) -> Tuple[List[Dict[str, Any]], List[str]]:
     new_institutions: List[str] = []
-    for index, series in data.iterrows():
-        description: str = series.get("description")
-        category_id = mappers.get(description)
+    for transaction in data:
+        description: str = transaction['description']
+        category_id: str = mappers.get(description)
 
         if category_id is None:
             new_institutions.append(description)
-            data.loc[index, "operationCategory"] = Config.default_category
+            transaction['operationCategory'] = Config.default_category
         else:
-            data.loc[index, "operationCategory"] = categories[category_id]
+            transaction['operationCategory'] = categories[category_id]
 
-    logger.info(f"Found new institutions: {new_institutions}")
+    logger.info(f"Found {len(new_institutions)} new institutions: {new_institutions}")
+
     return data, new_institutions

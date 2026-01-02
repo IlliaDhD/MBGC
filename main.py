@@ -1,12 +1,11 @@
-import json, time
+import json
+from pandas import DataFrame
 
-import pandas as pd
-
-from app.api.time_bounds import bounds_from_period, bounds_from_days_number
+from config import Config
 from app.api.mono_api import get_transactions
 from app.data_processing.data_processing import *
 from app.data_processing.saving import save_to_csv, add_new_institutions
-from config import Config
+from app.api.time_bounds import bounds_from_period, bounds_from_days_number
 
 
 def form_filename(time_bounds: List[Tuple[float, float]]) -> str:
@@ -18,21 +17,27 @@ def form_filename(time_bounds: List[Tuple[float, float]]) -> str:
 
 if __name__ == "__main__":
     logger = Config.get_logger("Main")
-    transactions = DataFrame(columns=['time', 'operationAmount', 'description'])
+    transactions = []
 
     if Config.request_days_number:
         time_bounds = bounds_from_days_number(int(Config.request_days_number))
     else:
         time_bounds = bounds_from_period(Config.request_period or Config.month_unix_period)
 
+    logger.info(f"Requesting transactions for period: {time_bounds}")
     for from_time, to_time in time_bounds:
         # Obtains row transactions
-        new_transactions = get_transactions(from_time=from_time, to_time=to_time).loc[:,
-                           ['time', 'operationAmount', 'description']]
-        transactions = pd.concat([transactions, new_transactions], ignore_index=True)
-        time.sleep(5)  # due to API limitations
-    # Saves only required columns
-    logger.info("MonoApi: Obtained transactions: {}".format(transactions))
+        transactions_list = get_transactions(from_time=from_time, to_time=to_time)
+
+        new_transactions = [{
+            'time'           : transaction['time'],
+            'operationAmount': transaction['operationAmount'],
+            'description'    : transaction['description']
+        } for transaction in transactions_list]
+
+        transactions += new_transactions
+
+    logger.info("Obtained transactions: {}".format(transactions))
 
     # Maps data into required format
     with open(Config.categories_json_path, "r", encoding="utf-8") as categories_file:
@@ -48,4 +53,4 @@ if __name__ == "__main__":
 
     # Saves data
     add_new_institutions(new_institutions)
-    save_to_csv(form_filename(time_bounds), processed)
+    save_to_csv(form_filename(time_bounds), DataFrame(processed))
