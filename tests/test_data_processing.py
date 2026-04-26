@@ -2,20 +2,23 @@ import logging
 import unittest
 
 from app.data_processing.data_processing import map_description_to_category
-from tests.common import TestTransactions
+from tests.common import TestTransactions as transactions
 
 
 class DataProcessingTests(unittest.TestCase):
 
-
     def test_map_description_to_category(self):
-        categories = TestTransactions.generate_categories()
-        mappings = TestTransactions.generate_mappings(list(categories.keys()))
-        test_data, mapped_data, new_institutions = TestTransactions.generate_test_data(mappings, categories)
+        categories = transactions.generate_categories()
+        mappings = transactions.generate_mappings(list(categories.keys()))
+        (test_d, t_mapped_d, new_inst) = transactions.generate_test_data(
+            mappings, categories)
 
-        actual_mapped_data, actual_new_institutions = map_description_to_category(test_data, categories, mappings)
+        actual_d, actual_new_inst = map_description_to_category(
+            test_d, categories, mappings)
 
-        logging.info(f"Simulated data category mapping for {len(actual_mapped_data)} transactions")
+        logging.info(
+            "Simulated mapping for %s transactions",
+            len(actual_d))
 
-        self.assertEqual(actual_mapped_data, mapped_data)
-        self.assertEqual(actual_new_institutions, new_institutions)
+        self.assertEqual(actual_d, t_mapped_d)
+        self.assertEqual(actual_new_inst, new_inst)

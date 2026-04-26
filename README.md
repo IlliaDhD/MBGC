@@ -1,150 +1,140 @@
-# MBGC - Monobank to GnuCash Importer
+# MBGC - Monobank Transaction Categorizer
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/IlliaDhD/MBGC/main.yml?branch=main)](https://github.com/IlliaDhD/MBGC/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A simple command-line tool to automatically fetch transactions from your Monobank account and import them directly into your GnuCash file, complete with smart categorization.
+MBGC is a command-line tool to fetch transactions from your Monobank account, categorize them using custom rules, and export the results to CSV for further analysis or import into other systems.
 
-## The Problem
+## Overview
 
-Manually exporting transaction statements from your bank, cleaning them up, and importing them into GnuCash is a tedious and time-consuming process. This tool automates that entire workflow for Monobank users, saving you time and ensuring your financial records are always up-to-date.
+This tool automates the process of retrieving Monobank transactions, mapping them to categories based on your configuration, and saving the results. It is highly configurable and extensible, making it easy to adapt to your personal finance workflow.
 
 ## ✨ Features
 
-* **Direct API Integration**: Fetches transactions directly from the Monobank API.
-* **Smart Categorization**: Uses a simple JSON mapping file to automatically assign transactions to the correct GnuCash expense/income accounts.
-* **Direct GnuCash Import**: Imports the categorized transactions directly into your `.gnucash` file.
-* **Duplicate Prevention**: Keeps track of the last imported transaction to avoid creating duplicate entries.
-* **Actionable Reports**: Informs you of any new transaction types that need to be mapped.
+- **Direct Monobank API Integration**: Fetches transactions for a configurable period.
+- **Custom Categorization**: Uses JSON files to map transaction descriptions to categories.
+- **Automatic Detection of New Institutions**: Unmapped transaction descriptions are added to the mapping file for easy future categorization.
+- **CSV Export**: Saves processed transactions as CSV files for further use.
+- **Configurable via Environment Variables**: All paths and options are set via environment variables (see below).
 
-## 🔧 Prerequisites
+## Prerequisites
 
-Before you begin, ensure you have the following:
+- Python 3.8 or higher
+- Monobank account and API token
 
-* Python 3.8 or higher.
-* An existing GnuCash data file (e.g., `my_finances.gnucash`).
-* A Monobank account and your personal API access token.
+## Project Structure
+
+```
+MBGC/
+├── entrypoint.sh                # Script to activate venv, set env vars, and run main.py
+├── requirements.txt             # Python dependencies
+├── main.py                      # Main application logic
+├── config.py                    # Configuration and environment variable handling
+├── app/
+│   ├── api/
+│   │   ├── mono_api.py          # Monobank API interaction
+│   │   └── time_bounds.py       # Time period calculation utilities
+│   └── data_processing/
+│       ├── data_processing.py   # Data transformation and categorization
+│       └── saving.py            # CSV and mapping file saving utilities
+├── data/
+│   ├── categories.json          # Category definitions
+│   └── institution_to_category.json # Mapping of descriptions to categories
+├── tests/                       # Unit tests
+└── README.md
+```
 
 ## 🚀 Getting Started
 
-Follow these steps to get the project up and running on your local machine.
-
-### 1. Installation
-
-First, clone the repository to your local machine:
+Clone the repository and set up your environment:
 ```bash
-git clone [https://github.com/IlliaDhD/MBGC.git](https://github.com/IlliaDhD/MBGC.git)
+git clone https://github.com/IlliaDhD/MBGC.git
 cd MBGC
 ```
 
 It is highly recommended to use a Python virtual environment:
+
 ```bash
 # Create a virtual environment
-python -m venv venv
+python -m venv .venv
 
-# Activate it (on Windows)
-.\venv\Scripts\activate
-
-# Activate it (on macOS/Linux)
-source venv/bin/activate
+# Activate it (Linux/macOS)
+source .venv/bin/activate
+# Activate it (Windows)
+.\.venv\Scripts\activate
 ```
 
-Install the required Python packages:
+Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configuration
+## Configuration
 
-This program requires several configuration steps to function correctly. You need to set up environment variables and create two JSON files for account and transaction mapping.
+All configuration is handled via environment variables. You can set them in your shell, in `entrypoint.sh`, or with a `.env` file (if you use a tool like `python-dotenv`).
 
-#### Environment Variables
+**Required environment variables:**
 
-The application requires the following environment variables to be set. You can set them in your shell, or use a `.env` file and a library like `python-dotenv`.
+- `API_TOKEN` — Your Monobank API token
+- `MONO_ACCOUNT_ID` — Your Monobank account ID (default: 0)
+- `MONO_REQUEST_PERIOD` — Period (in seconds) to fetch transactions for (default: 1 month)
+- `MONO_REQUEST_PERIOD_DAYS` — Alternative: number of days to fetch (overrides period)
+- `CATEGORIES_JSON_PATH` — Path to `categories.json` (category definitions)
+- `CATEGORIES_MAPPER_JSON_PATH` — Path to `institution_to_category.json` (description-to-category mapping)
+- `RESULT_CSV_PATH` — Directory to save result CSV files
+- `DEFAULT_CATEGORY` — Default category name for unmapped transactions
+- `DEFAULT_CATEGORY_ID` — Default category ID for new institutions
 
-* `MBGC_API_TOKEN`: Your personal API token for the Monobank API.
-* `GNUCASH_FILE_PATH`: The absolute or relative path to your GnuCash file (e.g., `/home/user/documents/finances.gnucash`).
-* `ACCOUNTS_JSON_PATH`: The path to the `accounts.json` file. Defaults to `accounts.json` in the root directory.
-* `MAPPING_JSON_PATH`: The path to the `mapping.json` file. Defaults to `mapping.json` in the root directory.
+**Data files:**
 
-#### Configuration Files
+- `data/categories.json` — Maps category IDs to category names
+- `data/institution_to_category.json` — Maps transaction descriptions to category IDs
 
-You must create two JSON files in the project's root directory (or specify their paths using the environment variables above).
+## Usage
 
-##### `accounts.json`
-
-This file should contain a list of all your relevant GnuCash accounts. You need to provide the account name and its unique ID from GnuCash.
-
-**Example `accounts.json`:**
-```json
-[
-  {
-    "id": "c3e5d3f2a1b94b0e8a7d6f5c4e3b2a1c",
-    "name": "Expenses:Groceries"
-  },
-  {
-    "id": "a1b2c3d4e5f64a7b8c9d0e1f2a3b4c5d",
-    "name": "Expenses:Dining Out"
-  },
-  {
-    "id": "f9e8d7c6b5a44b3c2a1b0f9e8d7c6b5a",
-    "name": "Expenses:Transport:Fuel"
-  },
-  {
-    "id": "1a2b3c4d5e6f4a7b8c9d0e1f2a3b4c5d",
-    "name": "Assets:Current Assets:Monobank"
-  }
-]
-```
-
-##### `mapping.json`
-
-This file maps transaction descriptions from the bank's API to one of your GnuCash account IDs from `accounts.json`. This allows the program to automatically categorize your transactions.
-
-**Example `mapping.json`:**
-```json
-{
-  "SuperMart": "c3e5d3f2a1b94b0e8a7d6f5c4e3b2a1c",
-  "The Corner Cafe": "a1b2c3d4e5f64a7b8c9d0e1f2a3b4c5d",
-  "Shell Gas Station": "f9e8d7c6b5a44b3c2a1b0f9e8d7c6b5a",
-  "Pizzeria Roma": "a1b2c3d4e5f64a7b8c9d0e1f2a3b4c5d"
-}
-```
-*In this example, any transaction with "The Corner Cafe" or "Pizzeria Roma" in its description will be assigned to the "Expenses:Dining Out" account.*
-
-## ▶️ Usage
-
-Once everything is configured, run the main script from the project's root directory:
+You can run the application using the provided `entrypoint.sh` script (recommended):
 
 ```bash
+./entrypoint.sh
+```
+
+Or manually:
+
+```bash
+source .venv/bin/activate
 python main.py
 ```
 
-### ✅ Example Output
+## Example Workflow
 
-When you run the program, the expected output will look something like this, indicating the status of the import process:
+1. The app fetches transactions from Monobank for the configured period.
+2. It loads categories and mapping data from JSON files.
+3. Each transaction is mapped to a category. New/unmapped descriptions are added to the mapping file with a default category.
+4. The processed transactions are saved as a CSV file in the results directory.
+
+## Example Output
 
 ```
-Fetching new transactions from Monobank API...
-Found 15 new transactions.
-Processing and mapping transactions...
-- 12 transactions mapped successfully.
-- 3 transactions have no mapping rule. Please update mapping.json for the following descriptions: ['New Bookstore', 'Online Subscription', 'City Parking']
-Importing 12 transactions into GnuCash...
-Successfully imported 12 transactions into /home/user/documents/finances.gnucash.
-Process finished.
+Requesting transactions for period: [(1700000000.0, 1700864000.0)]
+Obtained transactions: [...]
+Mapped 15 transactions timestamps to ISO format
+Mapped operationAmount for 15 transactions
+Wrote new institutions to the mappers file
+Wrote results the file: data/2025-10-23-2025-12-22.csv
 ```
 
-## 🤝 Contributing
+## Testing
 
-Contributions are welcome! If you have a suggestion or find a bug, please feel free to open an issue or submit a pull request.
+Unit tests are located in the `tests/` directory. To run tests:
 
-1.  **Fork** the project.
-2.  Create your feature branch (`git checkout -b feature/AmazingFeature`).
-3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-4.  Push to the branch (`git push origin feature/AmazingFeature`).
-5.  Open a **Pull Request**.
+```bash
+pytest
+```
 
-## 📄 License
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request.
+
+## License
 
 This project is distributed under the MIT License. See the `LICENSE` file for more information.
