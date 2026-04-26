@@ -1,11 +1,19 @@
-import json
 from pandas import DataFrame
+
+import json
+import datetime
+import logging
+from typing import List, Tuple
 
 from config import Config
 from app.api.mono_api import get_transactions
-from app.data_processing.data_processing import *
 from app.data_processing.saving import save_to_csv, add_new_institutions
 from app.api.time_bounds import bounds_from_period, bounds_from_days_number
+from app.data_processing.data_processing import (
+    map_description_to_category,
+    map_coins,
+    map_unix_to_iso
+)
 
 
 def form_filename(time_bounds: List[Tuple[float, float]]) -> str:
@@ -16,23 +24,26 @@ def form_filename(time_bounds: List[Tuple[float, float]]) -> str:
 
 
 if __name__ == "__main__":
-    logger = Config.get_logger("Main")
+    logging.basicConfig()
+    logger = logging.getLogger(__name__)
     transactions = []
 
     if Config.request_days_number:
         time_bounds = bounds_from_days_number(int(Config.request_days_number))
     else:
-        time_bounds = bounds_from_period(Config.request_period or Config.month_unix_period)
+        time_bounds = bounds_from_period(
+            Config.request_period or Config.month_unix_period)
 
     logger.info(f"Requesting transactions for period: {time_bounds}")
+
     for from_time, to_time in time_bounds:
         # Obtains row transactions
-        transactions_list = get_transactions(from_time=from_time, to_time=to_time)
+        transactions_list = get_transactions(from_time, to_time)
 
         new_transactions = [{
-            'time'           : transaction['time'],
+            'time': transaction['time'],
             'operationAmount': transaction['operationAmount'],
-            'description'    : transaction['description']
+            'description': transaction['description']
         } for transaction in transactions_list]
 
         transactions += new_transactions
@@ -40,9 +51,9 @@ if __name__ == "__main__":
     logger.info("Obtained transactions: {}".format(transactions))
 
     # Maps data into required format
-    with open(Config.categories_json_path, "r", encoding="utf-8") as categories_file:
+    with open(Config.categories_json_path, "r") as categories_file:
         categories: dict[str, str] = json.load(categories_file)
-    with open(Config.category_mapper_json_path, "r", encoding="utf-8") as mappers_file:
+    with open(Config.category_mapper_json_path, "r") as mappers_file:
         mappers: dict[str, str] = json.load(mappers_file)
 
     processed, new_institutions = map_description_to_category(
